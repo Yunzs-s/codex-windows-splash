@@ -14,21 +14,9 @@ if (Test-Path -LiteralPath $selection -PathType Leaf) {
   if ($filename -notmatch '^[^\\/:*?"<>|]+\.mp4$') { throw 'current.txt must contain only an MP4 filename from the assets folder.' }
   $asset = Join-Path $assetDirectory $filename
 }
-$shortcut = Join-Path $PSScriptRoot 'OpenAI Codex.lnk'
-if (-not $Preview) {
-  $package = Get-AppxPackage -Name 'OpenAI.Codex' | Select-Object -First 1
-  if (-not $package) { throw 'The installed Codex app was not found.' }
-  [xml]$manifest = Get-AppxPackageManifest -Package $package.PackageFullName
-  $application = $manifest.Package.Applications.Application | Where-Object Id -EQ 'App' | Select-Object -First 1
-  if (-not $application) { throw 'The Codex app entry was not found.' }
-  $target = Join-Path $package.InstallLocation $application.Executable
-  if (-not (Test-Path -LiteralPath $target -PathType Leaf)) { throw 'The Codex executable was not found.' }
-  $link = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcut)
-  if ($link.TargetPath -ne $target) {
-    $link.TargetPath = $target
-    $link.WorkingDirectory = Split-Path $target -Parent
-    $link.Save()
-  }
+$skinLauncher = Join-Path $PSScriptRoot 'launch-skinned-codex.ps1'
+if (-not $Preview -and -not (Test-Path -LiteralPath $skinLauncher -PathType Leaf)) {
+  throw "Skin launcher was not found: $skinLauncher"
 }
 
 $window = New-Object Windows.Window
@@ -102,7 +90,8 @@ $window.Add_ContentRendered({
   if ($video) { $video.Play() }
   if (-not $Preview) {
     try {
-      Invoke-Item -LiteralPath $shortcut
+      $launchArguments = '-NoProfile -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "' + $skinLauncher + '"'
+      Start-Process -FilePath powershell.exe -ArgumentList $launchArguments -WindowStyle Hidden | Out-Null
     } catch {
       [Windows.MessageBox]::Show('Could not start Codex: ' + $_.Exception.Message) | Out-Null
       & $fade

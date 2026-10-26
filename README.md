@@ -1,34 +1,50 @@
-# Codex Windows Splash
+# Codex Windows Splash + Skin
 
-An independent full-screen Windows splash window that plays your own MP4 for eight seconds while opening Codex through a shortcut created for your installation. It fades out automatically and can be skipped with Esc. It does not modify the Codex installation, use a debugging port, or inject code into the app. This project is **Windows only**.
+Windows-only fullscreen splash, connected to the installed Codex Windows Skin launcher.
+This development branch requires the skin runtime with `start-dream-skin.ps1 -Maximize` support.
+It has not been published as a new Release.
 
-## Install and use
+## Use
 
-1. Download `Codex-Windows-Splash-v0.1.2.zip` from Releases and extract it to a folder you can keep and write to.
-2. Supply **your own MP4**. Copy it into the extracted `assets` folder. H.264 video in an MP4 container is recommended; AAC audio is optional. Use a source you have the right to use.
-3. Create a text file named `current.txt` inside `assets`. Its only line must be the MP4 filename, such as `my-splash.mp4`. Do not write a full path.
-4. Double-click `启动 Codex.vbs`. The launcher creates `OpenAI Codex.lnk` in the extracted folder for your installed Codex app, then plays the video full-screen without a console window while Codex starts. The splash fades after eight seconds. If no video is configured or it cannot play, a plain "Codex" splash appears instead.
+1. Install/update Codex Windows Skin first.
+2. Put your own MP4 in `assets/`, then write only its filename in `assets/current.txt`.
+3. Double-click `启动 Codex.vbs` (or the existing shortcut pointing to it).
 
-To request a maximized Codex window, right-click the generated `OpenAI Codex.lnk`, open **Properties → Shortcut → Run**, select **Maximized**, and save. Do this after the first launch has created the shortcut. An already-running Codex window may retain its current size.
+The splash plays for about eight seconds. In parallel, `launch-skinned-codex.ps1` calls
+`%LOCALAPPDATA%\CodexDreamSkin\engine\scripts\start-dream-skin.ps1`
+with `-Maximize -PromptRestart -OperationLockTimeoutMilliseconds 30000`.
+The skin launcher starts or reuses the verified CDP session, maximizes the verified Codex
+main window, and applies the skin. A normal existing session requires restart confirmation.
+The launcher does not use the old `OpenAI Codex.lnk` or silently fall back to a plain instance.
 
-The video stays intact in `assets`: it plays for eight seconds, looping if shorter. To switch later, place another MP4 in `assets` and change the filename in `current.txt`. The launch shortcut can be pinned in place of your usual Codex shortcut. Launching the original Codex icon still opens Codex normally without this splash.
+Esc skips the splash. A splash ending does not guarantee skin readiness; the skin launcher
+continues independently and reports failure in a dialog. Its log is stored locally at
+`%LOCALAPPDATA%\CodexDreamSkin\splash-launch.log`.
+No startup monitor is enabled. The normal skin tray and injector remain running.
 
-The splash is silent by default. To hear an MP4's soundtrack, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\startup.ps1 -WithAudio` from the extracted folder. Volume starts at 35%. To preview without launching Codex, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\startup.ps1 -Preview`.
+Preview without launching Codex:
 
-## Why the release has no video
+```powershell
+powershell.exe -NoProfile -STA -ExecutionPolicy RemoteSigned -File .\startup.ps1 -Preview
+```
 
-The example animation used during development came from a third-party Steam Workshop item. Its copyright and redistribution rights are not granted to this repository, so **the MP4 is not uploaded to GitHub or included in Releases**. Downloading this repository gives you the launcher only. Bring a legally usable MP4 yourself and follow the steps above. The code is MIT licensed; that license does not apply to anyone else's video.
-
-## Limitations
-
-The handoff is time based: it does not know when the Codex page finishes loading, so the page may still be loading after the splash disappears. Windows must be able to decode your MP4. The launcher uses Windows PowerShell, WPF, and Windows Script Host; it reads the installed Codex package manifest to create or refresh a shortcut to that installation. A Codex update may change the executable path; the launcher refreshes the shortcut target while preserving its other settings. The PowerShell execution-policy override is scoped to this launch process. No background service remains after the splash closes.
-
-This is an independent community project, not an official OpenAI or Codex release.
+Add `-WithAudio` for audio (35% initial volume). Preview never launches the skin helper.
+Restore the official appearance using the installed `Codex Dream Skin - Restore` shortcut.
+Maximization preserves normal window chrome and is different from F11 fullscreen.
 
 ## 中文说明
 
-这是 **仅支持 Windows** 的独立 Codex 全屏开屏程序：播放自备 MP4 约 8 秒，同时通过为本机安装创建的快捷方式启动 Codex，然后淡出。按 Esc 可跳过。它不修改 Codex 安装文件，也不使用 CDP 或页面注入。
+先安装或更新换肤引擎，然后双击「启动 Codex.vbs」即可同时播放开屏并带皮肤启动 Codex。
+现有指向此 VBS 的「启动codex」快捷方式可继续使用。
+换肤启动器会最大化经过身份校验的 Codex 主窗口。已有带皮肤实例直接复用；
+已有普通实例会询问是否重启，不会未经确认强制重启。
 
-下载并解压 `Codex-Windows-Splash-v0.1.2.zip`。把你有权使用的 MP4 放入 `assets` 文件夹，再新建 `assets/current.txt`，其中只写 MP4 文件名（例如 `my-splash.mp4`），最后双击 `启动 Codex.vbs`。程序会在解压文件夹中自动创建 `OpenAI Codex.lnk`。若希望 Codex 最大化启动，首次运行后右键该快捷方式，进入 **属性 → 快捷方式 → 运行方式**，选择 **最大化** 并保存。以后可在 `assets` 保存多个视频，只需修改 `current.txt` 切换。默认静音；需要声音可在该文件夹运行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\startup.ps1 -WithAudio`。
+开屏约 8 秒后结束，换肤过程独立继续。普通 `OpenAI Codex.lnk` 不再参与这条路径。
+本次不会启用普通入口自动接管监控。失败时会单独弹窗，可查看上述本机日志。
+开屏视频与 `assets/current.txt` 只保留本机。
 
-开发时使用的示例视频来自第三方 Steam Workshop。**由于版权及再分发授权不明，仓库和 Release 均不上传该视频。**下载后请自行准备有使用权的 MP4。MIT 许可证只覆盖本项目代码，不覆盖任何第三方视频。
+## Media and license
+
+Bring a video you have the right to use. The development video came from a third-party
+Steam Workshop item and is not distributed in Git or Releases. The MIT license covers
+this project's code, not third-party media. This is an independent community project.

@@ -2,3 +2,5 @@ assets/*.mp4
 assets/current.txt
 *.zip
 *.lnk
+
+.local-evidence/

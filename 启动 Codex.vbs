@@ -1,7 +1,7 @@
 Set shell = CreateObject("WScript.Shell")
 Set files = CreateObject("Scripting.FileSystemObject")
 script = files.BuildPath(files.GetParentFolderName(WScript.ScriptFullName), "startup.ps1")
-command = "powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -WindowStyle Hidden -File """ & script & """"
+command = "powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -STA -WindowStyle Hidden -File """ & script & """"
 If WScript.Arguments.Count > 0 Then
   If LCase(WScript.Arguments(0)) = "/preview" Then command = command & " -Preview"
 End If
