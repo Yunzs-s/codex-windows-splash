@@ -1,0 +1,40 @@
+name: Package Windows release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  windows-zip:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package launcher without media
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $stage = Join-Path $env:RUNNER_TEMP 'codex-windows-splash'
+          New-Item -ItemType Directory -Path (Join-Path $stage 'assets') -Force | Out-Null
+          foreach ($file in @('README.md', 'LICENSE', 'startup.ps1', '启动 Codex.cmd')) {
+            Copy-Item -LiteralPath $file -Destination (Join-Path $stage $file)
+          }
+          Copy-Item -LiteralPath 'assets/README.txt' -Destination (Join-Path $stage 'assets/README.txt')
+          $media = @(Get-ChildItem -LiteralPath $stage -Recurse -File | Where-Object Extension -EQ '.mp4')
+          if ($media.Count -ne 0) { throw 'Media must not be packaged.' }
+          $zip = Join-Path $env:RUNNER_TEMP "Codex-Windows-Splash-$env:GITHUB_REF_NAME.zip"
+          Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zip -CompressionLevel Optimal
+          "RELEASE_ZIP=$zip" >> $env:GITHUB_ENV
+      - name: Attach Windows ZIP
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_ID: ${{ github.event.release.id }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $name = [uri]::EscapeDataString([IO.Path]::GetFileName($env:RELEASE_ZIP))
+          $uri = "https://uploads.github.com/repos/$env:GITHUB_REPOSITORY/releases/$env:RELEASE_ID/assets?name=$name"
+          $headers = @{ Authorization = "Bearer $env:GH_TOKEN"; Accept = 'application/vnd.github+json'; 'X-GitHub-Api-Version' = '2022-11-28' }
+          Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -InFile $env:RELEASE_ZIP -ContentType 'application/zip' | Out-Null
