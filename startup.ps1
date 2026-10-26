@@ -14,18 +14,32 @@ if (Test-Path -LiteralPath $selection -PathType Leaf) {
   if ($filename -notmatch '^[^\\/:*?"<>|]+\.mp4$') { throw 'current.txt must contain only an MP4 filename from the assets folder.' }
   $asset = Join-Path $assetDirectory $filename
 }
-$app = Get-StartApps | Where-Object AppID -Like 'OpenAI.Codex_*!App' | Select-Object -First 1
-if (-not $Preview -and -not $app) { throw 'The registered Codex app entry was not found.' }
+$shortcut = Join-Path $PSScriptRoot 'OpenAI Codex.lnk'
+if (-not $Preview) {
+  $package = Get-AppxPackage -Name 'OpenAI.Codex' | Select-Object -First 1
+  if (-not $package) { throw 'The installed Codex app was not found.' }
+  [xml]$manifest = Get-AppxPackageManifest -Package $package.PackageFullName
+  $application = $manifest.Package.Applications.Application | Where-Object Id -EQ 'App' | Select-Object -First 1
+  if (-not $application) { throw 'The Codex app entry was not found.' }
+  $target = Join-Path $package.InstallLocation $application.Executable
+  if (-not (Test-Path -LiteralPath $target -PathType Leaf)) { throw 'The Codex executable was not found.' }
+  $link = (New-Object -ComObject WScript.Shell).CreateShortcut($shortcut)
+  if ($link.TargetPath -ne $target) {
+    $link.TargetPath = $target
+    $link.WorkingDirectory = Split-Path $target -Parent
+    $link.Save()
+  }
+}
 
 $window = New-Object Windows.Window
 $window.Title = 'Codex Splash'
-$window.Width = 880
-$window.Height = 500
-$window.MinWidth = 500
-$window.MinHeight = 300
+$window.Left = 0
+$window.Top = 0
+$window.Width = [Windows.SystemParameters]::PrimaryScreenWidth
+$window.Height = [Windows.SystemParameters]::PrimaryScreenHeight
 $window.WindowStyle = 'None'
 $window.ResizeMode = 'NoResize'
-$window.WindowStartupLocation = 'CenterScreen'
+$window.WindowStartupLocation = 'Manual'
 $window.Background = [Windows.Media.Brushes]::Black
 $window.Topmost = $true
 $window.ShowInTaskbar = $false
@@ -46,8 +60,7 @@ $grid.Children.Add($caption) | Out-Null
 $video = $null
 $mediaOpened = $false
 $mediaFailed = $false
-$mediaEnded = -not ($asset -and (Test-Path -LiteralPath $asset -PathType Leaf))
-if (-not $mediaEnded) {
+if ($asset -and (Test-Path -LiteralPath $asset -PathType Leaf)) {
   $video = New-Object Windows.Controls.MediaElement
   $video.LoadedBehavior = 'Manual'
   $video.UnloadedBehavior = 'Stop'
@@ -58,10 +71,9 @@ if (-not $mediaEnded) {
   $grid.Children.Add($video) | Out-Null
   $caption.Visibility = 'Collapsed'
   $video.Add_MediaOpened({ $script:mediaOpened = $true })
-  $video.Add_MediaEnded({ $script:mediaEnded = $true })
+  $video.Add_MediaEnded({ $video.Position = [TimeSpan]::Zero; $video.Play() })
   $video.Add_MediaFailed({
     $script:mediaFailed = $true
-    $script:mediaEnded = $true
     $video.Visibility = 'Collapsed'
     $caption.Visibility = 'Visible'
   })
@@ -90,7 +102,7 @@ $window.Add_ContentRendered({
   if ($video) { $video.Play() }
   if (-not $Preview) {
     try {
-      Start-Process -FilePath 'explorer.exe' -ArgumentList ('shell:AppsFolder\' + $app.AppID) | Out-Null
+      Invoke-Item -LiteralPath $shortcut
     } catch {
       [Windows.MessageBox]::Show('Could not start Codex: ' + $_.Exception.Message) | Out-Null
       & $fade
@@ -100,12 +112,7 @@ $window.Add_ContentRendered({
 })
 $timer.Add_Tick({
   $seconds = $started.Elapsed.TotalSeconds
-  if ($Preview) {
-    if ($seconds -ge 3 -and $mediaEnded) { & $fade; return }
-    if ($seconds -ge 5) { & $fade }
-    return
-  }
-  if ($seconds -ge 5) { & $fade }
+  if ($seconds -ge 8) { & $fade }
 })
 
 try { $window.ShowDialog() | Out-Null }

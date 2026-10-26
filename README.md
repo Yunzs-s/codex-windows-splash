@@ -1,15 +1,17 @@
 # Codex Windows Splash
 
-An independent Windows splash window that plays the first five seconds of your own MP4 while opening Codex through its registered Windows app entry. It fades out automatically and can be skipped with Esc. It does not modify the Codex installation, use a debugging port, or inject code into the app. This project is **Windows only**.
+An independent full-screen Windows splash window that plays your own MP4 for eight seconds while opening Codex through a shortcut created for your installation. It fades out automatically and can be skipped with Esc. It does not modify the Codex installation, use a debugging port, or inject code into the app. This project is **Windows only**.
 
 ## Install and use
 
-1. Download the `Codex-Windows-Splash-v0.1.1.zip` file from Releases and extract it to a folder you can keep.
+1. Download `Codex-Windows-Splash-v0.1.2.zip` from Releases and extract it to a folder you can keep and write to.
 2. Supply **your own MP4**. Copy it into the extracted `assets` folder. H.264 video in an MP4 container is recommended; AAC audio is optional. Use a source you have the right to use.
 3. Create a text file named `current.txt` inside `assets`. Its only line must be the MP4 filename, such as `my-splash.mp4`. Do not write a full path.
-4. Double-click `启动 Codex.cmd`. The video plays while Codex starts, then stops after five seconds and the splash fades. If no video is configured or it cannot play, a plain "Codex" splash appears instead.
+4. Double-click `启动 Codex.vbs`. The launcher creates `OpenAI Codex.lnk` in the extracted folder for your installed Codex app, then plays the video full-screen without a console window while Codex starts. The splash fades after eight seconds. If no video is configured or it cannot play, a plain "Codex" splash appears instead.
 
-The video stays intact in `assets`: only the first five seconds are played. To switch later, place another MP4 in `assets` and change the filename in `current.txt`. The launch shortcut can be pinned in place of your usual Codex shortcut. Launching the original Codex icon still opens Codex normally without this splash.
+To request a maximized Codex window, right-click the generated `OpenAI Codex.lnk`, open **Properties → Shortcut → Run**, select **Maximized**, and save. Do this after the first launch has created the shortcut. An already-running Codex window may retain its current size.
+
+The video stays intact in `assets`: it plays for eight seconds, looping if shorter. To switch later, place another MP4 in `assets` and change the filename in `current.txt`. The launch shortcut can be pinned in place of your usual Codex shortcut. Launching the original Codex icon still opens Codex normally without this splash.
 
 The splash is silent by default. To hear an MP4's soundtrack, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\startup.ps1 -WithAudio` from the extracted folder. Volume starts at 35%. To preview without launching Codex, run `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\startup.ps1 -Preview`.
 
@@ -19,14 +21,14 @@ The example animation used during development came from a third-party Steam Work
 
 ## Limitations
 
-The handoff is time based: it does not know when the Codex page finishes loading, so the page may still be loading after the splash disappears. Windows must be able to decode your MP4. The launcher uses Windows PowerShell and WPF; it queries the installed `OpenAI.Codex_*!App` entry each time rather than calling an executable in `WindowsApps` directly. The PowerShell execution-policy override is scoped to this launch process. No background service remains after the splash closes.
+The handoff is time based: it does not know when the Codex page finishes loading, so the page may still be loading after the splash disappears. Windows must be able to decode your MP4. The launcher uses Windows PowerShell, WPF, and Windows Script Host; it reads the installed Codex package manifest to create or refresh a shortcut to that installation. A Codex update may change the executable path; the launcher refreshes the shortcut target while preserving its other settings. The PowerShell execution-policy override is scoped to this launch process. No background service remains after the splash closes.
 
 This is an independent community project, not an official OpenAI or Codex release.
 
 ## 中文说明
 
-这是 **仅支持 Windows** 的独立 Codex 开屏程序：播放自备 MP4 的前 5 秒，同时通过 Windows 官方注册入口启动 Codex，然后淡出。按 Esc 可跳过。它不修改 Codex 安装文件，也不使用 CDP 或页面注入。
+这是 **仅支持 Windows** 的独立 Codex 全屏开屏程序：播放自备 MP4 约 8 秒，同时通过为本机安装创建的快捷方式启动 Codex，然后淡出。按 Esc 可跳过。它不修改 Codex 安装文件，也不使用 CDP 或页面注入。
 
-从 Releases 下载 `Codex-Windows-Splash-v0.1.1.zip` 并解压。把你有权使用的 MP4 放入 `assets` 文件夹，再新建 `assets/current.txt`，其中只写 MP4 文件名（例如 `my-splash.mp4`），最后双击 `启动 Codex.cmd`。以后可在 `assets` 保存多个视频，只需修改 `current.txt` 切换。默认静音；需要声音可在该文件夹运行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\startup.ps1 -WithAudio`。
+下载并解压 `Codex-Windows-Splash-v0.1.2.zip`。把你有权使用的 MP4 放入 `assets` 文件夹，再新建 `assets/current.txt`，其中只写 MP4 文件名（例如 `my-splash.mp4`），最后双击 `启动 Codex.vbs`。程序会在解压文件夹中自动创建 `OpenAI Codex.lnk`。若希望 Codex 最大化启动，首次运行后右键该快捷方式，进入 **属性 → 快捷方式 → 运行方式**，选择 **最大化** 并保存。以后可在 `assets` 保存多个视频，只需修改 `current.txt` 切换。默认静音；需要声音可在该文件夹运行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\startup.ps1 -WithAudio`。
 
 开发时使用的示例视频来自第三方 Steam Workshop。**由于版权及再分发授权不明，仓库和 Release 均不上传该视频。**下载后请自行准备有使用权的 MP4。MIT 许可证只覆盖本项目代码，不覆盖任何第三方视频。
