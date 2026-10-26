@@ -101,7 +101,7 @@ $window.Add_ContentRendered({
 })
 $timer.Add_Tick({
   $seconds = $started.Elapsed.TotalSeconds
-  if ($seconds -ge 8) { & $fade }
+  if ($seconds -ge 10) { & $fade }
 })
 
 try { $window.ShowDialog() | Out-Null }
