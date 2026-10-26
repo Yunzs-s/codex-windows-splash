@@ -11,14 +11,14 @@ $selection = Join-Path $assetDirectory 'current.txt'
 $asset = $null
 if (Test-Path -LiteralPath $selection -PathType Leaf) {
   $filename = (Get-Content -LiteralPath $selection -Raw).Trim()
-  if ($filename -notmatch '^[^\\/:*?"<>|]+\.mp4$') { throw 'current.txt 只能填写素材目录中的 MP4 文件名。' }
+  if ($filename -notmatch '^[^\\/:*?"<>|]+\.mp4$') { throw 'current.txt must contain only an MP4 filename from the assets folder.' }
   $asset = Join-Path $assetDirectory $filename
 }
 $app = Get-StartApps | Where-Object AppID -Like 'OpenAI.Codex_*!App' | Select-Object -First 1
-if (-not $Preview -and -not $app) { throw '未找到已安装的 Codex 官方启动入口。' }
+if (-not $Preview -and -not $app) { throw 'The registered Codex app entry was not found.' }
 
 $window = New-Object Windows.Window
-$window.Title = 'Codex 开屏'
+$window.Title = 'Codex Splash'
 $window.Width = 880
 $window.Height = 500
 $window.MinWidth = 500
@@ -92,7 +92,7 @@ $window.Add_ContentRendered({
     try {
       Start-Process -FilePath 'explorer.exe' -ArgumentList ('shell:AppsFolder\' + $app.AppID) | Out-Null
     } catch {
-      [Windows.MessageBox]::Show('Codex 启动失败：' + $_.Exception.Message) | Out-Null
+      [Windows.MessageBox]::Show('Could not start Codex: ' + $_.Exception.Message) | Out-Null
       & $fade
     }
   }
