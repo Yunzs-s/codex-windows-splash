@@ -17,12 +17,20 @@ try {
     [pscustomobject]@{ ready = $true; launcher = $startScript; maximize = $true }
     return
   }
-  & powershell.exe -NoProfile -ExecutionPolicy RemoteSigned -File $startScript -Maximize -PromptRestart -OperationLockTimeoutMilliseconds 30000 *> $logPath
-  if ($LASTEXITCODE -ne 0) { throw "Skin launch failed. See $logPath" }
+  $arguments = '-NoProfile -ExecutionPolicy RemoteSigned -File "' + $startScript + '" -Maximize -PromptRestart -OperationLockTimeoutMilliseconds 30000'
+  $child = Start-Process -FilePath powershell.exe -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput $logPath -RedirectStandardError ($logPath + '.error.log')
+  try {
+    $null = $child.Handle
+    # Wait for the launcher process, not its long-lived injector descendants or inherited output pipes.
+    if (-not $child.WaitForExit(240000)) { throw "Skin launch has not finished. See $logPath" }
+    if ($child.ExitCode -ne 0) { throw "Skin launch failed. See $logPath and its .error.log file." }
+  } finally { $child.Dispose() }
   $trayArguments = '-NoProfile -STA -WindowStyle Hidden -ExecutionPolicy RemoteSigned -File "' + $trayScript + '"'
   Start-Process -FilePath powershell.exe -ArgumentList $trayArguments -WindowStyle Hidden | Out-Null
+  exit 0
 } catch {
   if ($CheckOnly) { throw }
+  $_ | Out-String | Add-Content -LiteralPath ($logPath + '.error.log')
   $shell = New-Object -ComObject WScript.Shell
   $null = $shell.Popup($_.Exception.Message, 0, 'Codex Splash + Skin', 16)
   exit 1
